@@ -1,3 +1,4 @@
 /.env
 /.deep-learning-env
 /deep_learning_su/datasets
+requirements.txt
