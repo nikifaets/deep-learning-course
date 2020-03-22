@@ -30,17 +30,23 @@ def svm_loss_naive(W, X, y, reg):
     scores = X[i].dot(W)
     correct_class_score = scores[y[i]]
     for j in xrange(num_classes):
+
       if j == y[i]:
         continue
+
       margin = scores[j] - correct_class_score + 1 # note delta = 1
       if margin > 0:
+
+        dW[:,j] += X[i]
+        dW[:, y[i]] -= X[i]
         loss += margin
 
   # Right now the loss is a sum over all training examples, but we want it
   # to be an average instead so we divide by num_train.
   loss /= num_train
-
+  dW /= num_train
   # Add regularization to the loss.
+  dW += 2*reg*W
   loss += reg * np.sum(W * W)
 
   #############################################################################
@@ -62,15 +68,26 @@ def svm_loss_vectorized(W, X, y, reg):
 
   Inputs and outputs are the same as svm_loss_naive.
   """
+
   loss = 0.0
   dW = np.zeros(W.shape) # initialize the gradient as zero
-
   #############################################################################
   # TODO:                                                                     #
   # Implement a vectorized version of the structured SVM loss, storing the    #
   # result in loss.                                                           #
   #############################################################################
-  pass
+  delta = 1
+  num_samples = X.shape[0]
+  scores = np.matmul(X, W)
+
+  desired_output = scores[np.arange(len(scores)), y]
+  desired_output = np.transpose(np.tile(desired_output, (W.shape[1], 1)))
+
+  loss_clipped = np.clip(scores - desired_output + delta, a_min=0, a_max=None)
+  loss_clipped[np.arange(num_samples),  y] = 0
+
+  loss = np.sum(loss_clipped) / num_samples
+  loss += reg*np.sum(W*W)
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
@@ -85,7 +102,12 @@ def svm_loss_vectorized(W, X, y, reg):
   # to reuse some of the intermediate values that you used to compute the     #
   # loss.                                                                     #
   #############################################################################
-  pass
+  loss_clipped[loss_clipped > 0] = 1
+  row_sum = np.sum(loss_clipped, axis=1)
+  loss_clipped[np.arange(len(loss_clipped)), y] = -row_sum
+  dW = np.matmul(np.transpose(X), loss_clipped)
+  dW /= num_samples
+  dW += 2*reg*W
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
