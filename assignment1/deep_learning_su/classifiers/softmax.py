@@ -2,7 +2,7 @@ import numpy as np
 from random import shuffle
 from past.builtins import xrange
 
-def softmax_loss_naive(W, X, y, reg):
+def softmax_loss_naive(W, XX, y, reg):
   """
   Softmax loss function, naive implementation (with loops)
 
@@ -30,7 +30,38 @@ def softmax_loss_naive(W, X, y, reg):
   # here, it is easy to run into numeric instability. Don't forget the        #
   # regularization!                                                           #
   #############################################################################
-  pass
+  X = np.copy(XX)
+  num_samples = len(X)
+
+  X /= np.max(X)
+
+  for i in range(len(X)):
+
+    scores = X[i].dot(W)
+    scores_sum = 0
+
+    for j in range(len(scores)):
+
+      scores_sum += np.exp(scores[j])
+      if j == y[i]:
+
+        dW[:,j] -= X[i]
+
+    softmax = np.exp(scores[y[i]]) / scores_sum
+    softmax_j = np.exp(scores[j]) / scores_sum
+    loss += -np.log(softmax)
+
+    dW_t = np.zeros_like(dW.T)
+    dW_t += X[i] * softmax_j
+    dW += dW_t.T
+    
+  loss /= num_samples 
+  dW /= num_samples 
+
+  dW += reg*2*W
+  loss += reg * np.sum(W*W)
+
+
   #############################################################################
   #                          END OF YOUR CODE                                 #
   #############################################################################
@@ -38,7 +69,7 @@ def softmax_loss_naive(W, X, y, reg):
   return loss, dW
 
 
-def softmax_loss_vectorized(W, X, y, reg):
+def softmax_loss_vectorized(W, XX, y, reg):
   """
   Softmax loss function, vectorized version.
 
@@ -54,10 +85,31 @@ def softmax_loss_vectorized(W, X, y, reg):
   # here, it is easy to run into numeric instability. Don't forget the        #
   # regularization!                                                           #
   #############################################################################
-  pass
+  X = np.copy(XX)
+  #normalize
+  X /= np.max(X)
+  num_samples = len(X)
+  scores = np.matmul(X, W)
+  correct_scores = scores[np.arange(len(scores)), y]
+  scores_sums = np.sum(np.exp(scores), axis=1)
+  loss = - np.log( np.exp(correct_scores) / scores_sums)
+
+  softmax_matrix = (np.exp(scores).T / np.sum(np.exp(scores), axis=1)).T
+
+  subtract_matrix = np.zeros_like(softmax_matrix)
+  subtract_matrix[np.arange(num_samples), y] = 1
+
+
+  softmax_matrix -= subtract_matrix
+
+  dW = np.matmul(X.T, softmax_matrix) / num_samples
+
+  loss = np.sum(loss) / num_samples + reg*np.sum(W*W)
+  dW += reg*2*W
   #############################################################################
   #                          END OF YOUR CODE                                 #
   #############################################################################
 
+  
   return loss, dW
 
